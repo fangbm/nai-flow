@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121116" />
+    <title>NAI Flow · NovelAI V5 Workflow</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%239c7af6'/%3E%3Ctext x='8' y='24' font-size='22' font-family='serif' fill='%23211839'%3EN%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#studio" aria-label="NAI Flow home"><span class="brand-mark">N</span><span>NAI <b>FLOW</b></span></a>
+        <div class="project-pill"><span class="pulse"></span><span id="projectNameSide">夏末的信</span><button class="icon-button" id="renameProject" title="重命名项目">···</button></div>
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-item active" data-view="studio"><span>✦</span>基础出图</button>
+          <button class="nav-item" data-view="comic"><span>▦</span>本子工作流</button>
+          <button class="nav-item" data-view="assets"><span>◫</span>成品与素材 <em id="assetCount">0</em></button>
+        </nav>
+        <div class="sidebar-section">
+          <p>项目结构</p>
+          <div class="tree"><span>⌄</span><b>夏末的信</b><button id="addPage" title="新增页面">＋</button></div>
+          <div id="pageTree" class="page-tree"></div>
+        </div>
+        <div class="sidebar-bottom">
+          <button class="subtle-button" id="exportProject">⇩ 导出项目</button>
+          <label class="subtle-button import-label">⇧ 导入项目<input id="importProject" type="file" accept="application/json" /></label>
+          <button class="settings-row" id="openSettings"><span class="settings-dot">●</span><span><b>连接设置</b><small id="connectionState">尚未配置 API</small></span><span>›</span></button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div><p class="eyebrow" id="viewKicker">IMAGE STUDIO</p><h1 id="viewTitle">基础图片生成</h1></div>
+          <div class="top-actions"><span class="save-state" id="saveState">已保存在此设备</span><button class="button ghost" id="showHelp">使用说明</button><button class="avatar">F</button></div>
+        </header>
+
+        <section class="view active" id="studioView">
+          <div class="studio-layout">
+            <div class="studio-editor">
+              <section class="canvas-card preview-card" id="previewCard">
+                <div class="empty-art" id="emptyArt"><span class="spark one">✦</span><span class="spark two">✧</span><span class="spark three">✦</span><div class="mountain m1"></div><div class="mountain m2"></div><div class="sun"></div></div>
+                <img id="generatedImage" alt="生成结果" hidden />
+                <div class="preview-overlay"><span id="generationMeta">832 × 1216 · V5 Full</span><div><button class="mini-button" id="downloadImage" disabled>下载</button><button class="mini-button" id="useAsReference" disabled>作为参考</button></div></div>
+              </section>
+              <section class="prompt-card">
+                <div class="section-heading"><div><p>COMPOSE</p><h2>画面提示词</h2></div><button class="text-button" id="formatPrompt">整理结构</button></div>
+                <textarea id="promptInput" class="prompt-input" spellcheck="false" aria-label="正向提示词"></textarea>
+                <div class="prompt-footer"><span><kbd>⌘</kbd> <kbd>↵</kbd> 立即生成</span><span id="promptLength">0 chars</span></div>
+              </section>
+              <section class="character-section">
+                <div class="section-heading"><div><p>CHARACTERS</p><h2>角色提示词</h2></div><button class="text-button" id="addCharacter">＋ 添加角色</button></div>
+                <div id="characterList" class="character-list"></div>
+              </section>
+            </div>
+            <aside class="parameter-panel">
+              <div class="panel-title"><span>生成参数</span><button class="text-button" id="resetParameters">重置</button></div>
+              <label class="field-label">模型<select id="modelSelect"><option value="nai-diffusion-5-full">NAI Diffusion V5 Full</option><option value="nai-diffusion-5-curated">NAI Diffusion V5 Curated</option></select></label>
+              <div class="parameter-block"><div class="field-row"><label class="field-label">画幅比例<select id="aspectSelect"><option value="portrait">竖版 2:3</option><option value="square">方形 1:1</option><option value="landscape">横版 3:2</option><option value="wide">宽幅 16:9</option></select></label><label class="field-label">张数<select id="sampleCount"><option>1</option><option>2</option><option>3</option><option>4</option></select></label></div><div class="dimensions"><span id="dimensionText">832 × 1216 px</span><span>推荐免费尺寸</span></div></div>
+              <div class="parameter-block"><div class="slider-line"><label>Steps <output id="stepsValue">28</output></label><input id="steps" type="range" min="15" max="40" value="28" /></div><div class="slider-line"><label>Guidance <output id="guidanceValue">5.0</output></label><input id="guidance" type="range" min="3" max="8" value="5" step="0.5" /></div><label class="field-label">Sampler<select id="sampler"><option value="k_euler_ancestral">Euler Ancestral</option><option value="k_euler">Euler</option><option value="k_dpmpp_2m">DPM++ 2M</option></select></label></div>
+              <div class="parameter-block"><label class="field-label">种子<div class="seed-field"><input id="seed" type="number" placeholder="随机" /><button id="randomSeed" title="随机种子">⤨</button></div></label></div>
+              <label class="field-label uc-label">UC / 负面提示词<textarea id="negativeInput" placeholder="不需要排除项时保持空白（使用默认预设）"></textarea></label>
+              <button id="generateButton" class="button generate-button"><span>✦</span> 生成图片 <kbd>⌘ ↵</kbd></button>
+              <p class="quota-note">由你的 NovelAI 账户扣除额度。密钥仅保存于本机。</p>
+              <details id="imageErrorPanel" hidden style="border-top:1px solid #493945;color:#f0adb9;font-size:11px;margin-top:14px;padding-top:10px"><summary style="cursor:pointer;font-weight:700">图片生成错误详情（查看 NovelAI 返回内容）</summary><pre id="imageErrorContent" style="background:#15141a;border:1px solid #493945;border-radius:6px;color:#efc5cf;max-height:260px;overflow:auto;padding:10px;white-space:pre-wrap;word-break:break-word"></pre></details>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="comicView">
+          <div class="comic-layout">
+            <section class="script-panel">
+              <div class="section-heading"><div><p>STORY ENGINE</p><h2>剧本与分镜</h2></div><span class="tag">V5 PAGE MODE</span></div>
+              <label class="field-label">故事梗概<textarea id="synopsisInput" class="synopsis-input"></textarea></label>
+              <div class="script-options"><label class="field-label">页数<select id="pageCount"><option value="2">2 页 · 短篇</option><option value="4" selected>4 页 · 标准短篇</option><option value="8">8 页 · 小本子</option><option value="12">12 页 · 连载首话</option></select></label><label class="field-label">每页格数<select id="panelCount"><option value="2">2 格</option><option value="3">3 格</option><option value="4" selected>4 格</option><option value="6">6 格</option></select></label></div>
+              <label class="field-label">主要角色（每位一行或用分号分隔；格式：名称：外貌）<input id="comicCharacters" placeholder="澪：黑色长发、白色夏裙；悠：短棕发、浅色衬衫" /></label>
+              <button id="resolveCharacters" class="button ghost" type="button" style="margin-top:10px;width:100%">识别英文名与出处</button><p id="characterResolveHint" class="hint">中文版权角色可先识别为 NovelAI Character 字段；结果会写成“中文名：英文名 (作品)”，可手动修改。</p>
+              <button id="generateScript" class="button primary-wide"><span>✦</span> 生成剧本和分镜</button>
+              <p class="hint">配置文本模型后将调用它；未配置时会生成可继续编辑的本地分镜初稿。</p>
+              <details id="llmErrorPanel" class="llm-error" hidden style="border-top:1px solid #493945;color:#f0adb9;font-size:11px;margin-top:14px;padding-top:10px"><summary style="cursor:pointer;font-weight:700">剧本生成错误详情（查看模型返回内容）</summary><pre id="llmErrorContent" style="background:#15141a;border:1px solid #493945;border-radius:6px;color:#efc5cf;max-height:260px;overflow:auto;padding:10px;white-space:pre-wrap;word-break:break-word"></pre></details>
+            </section>
+            <section class="pages-panel"><div class="pages-toolbar"><div><p class="eyebrow">PAGES</p><h2 id="pageHeading">等待剧本</h2></div><div><button class="button ghost" id="downloadComicZip">打包下载</button><button class="button ghost" id="regenerateScript">重新规划</button><button class="button" id="generateAllPages">生成全部页面</button></div></div><div id="pagesGrid" class="pages-grid"><div class="empty-pages"><span>▦</span><h3>从一句故事开始</h3><p>系统会将剧情拆成连续页面，再按每页分格生成 NovelAI V5 提示词。</p></div></div></section>
+          </div>
+        </section>
+
+        <section class="view" id="assetsView"><div class="assets-header"><div><p class="eyebrow">LIBRARY</p><h2>生成成品</h2></div><button id="clearAssets" class="button ghost danger">清空本地预览</button></div><div id="assetGrid" class="asset-grid"><div class="empty-pages"><span>◫</span><h3>还没有成品</h3><p>基础出图和本子页面都会自动收集到这里。</p></div></div></section>
+      </main>
+    </div>
+
+    <dialog id="settingsDialog" class="modal"><form method="dialog"><div class="modal-heading"><div><p class="eyebrow">CONNECTIONS</p><h2>服务端连接设置</h2></div><button class="close-modal" value="cancel">×</button></div><div class="setting-tabs"><button class="settings-tab active" data-settings="nai">NovelAI</button><button class="settings-tab" data-settings="llm">剧本文本模型</button></div><div class="settings-content active" id="naiSettings"><label class="field-label">NovelAI API Token<input id="naiToken" type="password" placeholder="pst-…；已配置时留空不覆盖" autocomplete="off" /></label><label class="field-label">图片接口地址<input id="naiEndpoint" type="url" value="https://image.novelai.net/ai/generate-image" /></label><p class="connection-hint">密钥仅由本机后端保存；页面不会再持有密钥或直连 NovelAI。</p></div><div class="settings-content" id="llmSettings"><label class="field-label">OpenAI 兼容 API Base URL<input id="llmEndpoint" type="url" placeholder="https://api.example.com/v1" /></label><label class="field-label">API Key<input id="llmToken" type="password" placeholder="已配置时留空不覆盖" autocomplete="off" /></label><label class="field-label">模型名<input id="llmModel" placeholder="gpt-4.1-mini" /></label><p class="connection-hint">可填 Base URL 或完整的 <code>/chat/completions</code> 地址；后端会自动补齐路径并代理请求。</p></div><div class="modal-actions"><button class="button ghost" value="cancel">取消</button><button id="saveSettings" class="button" value="default">保存到后端</button></div></form></dialog>
+    <dialog id="helpDialog" class="modal help-modal"><form method="dialog"><div class="modal-heading"><div><p class="eyebrow">HOW IT WORKS</p><h2>使用说明</h2></div><button class="close-modal" value="cancel">×</button></div><ol><li>先启动后端和前端，然后在“服务端连接设置”保存 NovelAI token；密钥不会返回给页面。</li><li>基础出图：主提示词写构图/动作/场景，角色栏固定角色外观；姿势和机位使用短 tag，叙事关系用句子。</li><li>本子工作流：输入梗概后获得可编辑分镜，按“生成本页”产出一张含多格版式的页面。</li><li>可选配置 OpenAI 兼容文本模型来生成剧本；没有它也可用本地分镜初稿。</li></ol><p class="connection-hint">V5 规则：不自动抄写质量预设；UC 留空即使用 NovelAI 默认预设，多人页面避免写 <code>extra characters</code>。</p></form></dialog>
+    <div id="toast" class="toast" role="status"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+server/store/settings.json
+server/store/*.json
+server/store/assets/
+server/.venv/
+__pycache__/
+*.py[cod]
+web/node_modules/
+web/dist/
+nai-flow-*-qa.png
+nai-flow-qa.png
+node_modules/
+.npm-cache/
+.tmp/
+.edge-test-profile/
