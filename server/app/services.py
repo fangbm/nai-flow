@@ -31,6 +31,23 @@ def _chat_completions_url(endpoint: str) -> str:
     return endpoint if endpoint.endswith("/chat/completions") else f"{endpoint}/chat/completions"
 
 
+def _is_html_response(response: httpx.Response) -> bool:
+    content_type = response.headers.get("content-type", "").lower()
+    prefix = response.content.lstrip()[:32].lower()
+    return "text/html" in content_type or prefix.startswith((b"<!doctype html", b"<html"))
+
+
+def _html_endpoint_error(endpoint: str) -> HTTPException:
+    return HTTPException(
+        status_code=502,
+        detail=(
+            "剧本文本接口返回了 HTML 网页，而不是 OpenAI JSON。"
+            f"当前请求地址：{endpoint}。请在连接设置中填写 API Base URL（通常以 /v1 结尾）"
+            "或完整的 /chat/completions 地址，不要填写服务商网站首页。"
+        ),
+    )
+
+
 async def generate_image(payload: ImageRequest) -> tuple[bytes, str]:
     if not settings.nai_token:
         raise HTTPException(status_code=409, detail="后端尚未配置 NovelAI Token")
@@ -92,6 +109,8 @@ async def resolve_characters(characters: str) -> list[dict]:
     if response.is_error:
         detail = response.text[:12000].strip() or "上游未返回错误正文"
         raise HTTPException(status_code=response.status_code, detail=f"角色名称识别模型 {response.status_code}（{endpoint}）：{detail}")
+    if _is_html_response(response):
+        raise _html_endpoint_error(endpoint)
     try:
         output = json.loads(response.json()["choices"][0]["message"]["content"])
         resolved = output["characters"]
@@ -157,6 +176,8 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
     if response.is_error:
         detail = response.text[:12000].strip() or "上游未返回错误正文"
         raise HTTPException(status_code=response.status_code, detail=f"剧本文本模型 {response.status_code}（{endpoint}）：{detail}")
+    if _is_html_response(response):
+        raise _html_endpoint_error(endpoint)
     content = ""
     try:
         content = response.json()["choices"][0]["message"]["content"]

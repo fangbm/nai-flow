@@ -13,6 +13,24 @@ from .services import generate_image, generate_storyboard, resolve_characters
 router = APIRouter()
 
 
+def _openai_models_url(endpoint: str) -> str:
+    endpoint = endpoint.rstrip("/")
+    if endpoint.endswith("/chat/completions"):
+        return f"{endpoint.removesuffix('/chat/completions')}/models"
+    return f"{endpoint}/models"
+
+
+def _openai_chat_url(endpoint: str) -> str:
+    endpoint = endpoint.rstrip("/")
+    return endpoint if endpoint.endswith("/chat/completions") else f"{endpoint}/chat/completions"
+
+
+def _is_html_response(response: httpx.Response) -> bool:
+    content_type = response.headers.get("content-type", "").lower()
+    prefix = response.content.lstrip()[:32].lower()
+    return "text/html" in content_type or prefix.startswith((b"<!doctype html", b"<html"))
+
+
 @router.get("/api/health")
 async def health():
     return {"ok": True, **settings.view()}
@@ -88,9 +106,78 @@ async def test_settings(provider: str, payload: SettingsUpdate | None = None):
             raise HTTPException(status_code=response.status_code, detail=f"NovelAI 连接测试失败：{detail}")
         return {"ok": True, "detail": "NovelAI Token 验证成功，可以开始出图。"}
     if provider == "llm":
-        if not (settings.llm_token and settings.llm_endpoint and settings.llm_model):
+        token_value = payload.llm.token.strip() if payload and payload.llm.token else settings.llm_token
+        endpoint_value = payload.llm.endpoint if payload and payload.llm.endpoint is not None else settings.llm_endpoint
+        model_value = payload.llm.model.strip() if payload and payload.llm.model else settings.llm_model
+        if not (token_value and endpoint_value and model_value):
             raise HTTPException(status_code=409, detail="未完整配置剧本文本模型")
-        return {"ok": True, "detail":"剧本文本模型配置已保存。"}
+        try:
+            endpoint_value = settings.validate_endpoint(endpoint_value, "剧本文本接口")
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        models_url = _openai_models_url(endpoint_value)
+        chat_url = _openai_chat_url(endpoint_value)
+        token = token_value.removeprefix("Bearer ").strip()
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.get(
+                    models_url,
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                )
+        except httpx.HTTPError as error:
+            raise HTTPException(status_code=502, detail=f"剧本文本模型连接测试失败：{error}") from error
+        if response.is_error:
+            detail = response.text[:300].strip() or "上游未返回错误正文"
+            raise HTTPException(status_code=response.status_code, detail=f"剧本文本模型连接测试失败（{models_url}）：{detail}")
+        if _is_html_response(response):
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "剧本文本接口返回了 HTML 网页，而不是 OpenAI JSON。"
+                    f"测试地址：{models_url}。请填写 API Base URL（通常以 /v1 结尾），不要填写服务商网站首页。"
+                ),
+            )
+        try:
+            body = response.json()
+        except ValueError as error:
+            raise HTTPException(status_code=502, detail=f"剧本文本接口未返回 JSON（{models_url}）。") from error
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=502, detail=f"剧本文本接口返回了非对象 JSON（{models_url}）。")
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.post(
+                    chat_url,
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                    json={
+                        "model": model_value,
+                        "messages": [
+                            {"role": "system", "content": "Reply with exactly OK."},
+                            {"role": "user", "content": "OK"},
+                        ],
+                        "temperature": 0,
+                        "max_tokens": 8,
+                    },
+                )
+        except httpx.HTTPError as error:
+            raise HTTPException(status_code=502, detail=f"剧本文本模型最小推理测试失败：{error}") from error
+        if response.is_error:
+            detail = response.text[:300].strip() or "上游未返回错误正文"
+            raise HTTPException(status_code=response.status_code, detail=f"剧本文本模型最小推理测试失败（{chat_url}）：{detail}")
+        if _is_html_response(response):
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "剧本文本接口返回了 HTML 网页，而不是 OpenAI JSON。"
+                    f"测试地址：{chat_url}。请填写 API Base URL（通常以 /v1 结尾），不要填写服务商网站首页。"
+                ),
+            )
+        try:
+            content = response.json()["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise HTTPException(status_code=502, detail=f"剧本文本接口未返回 OpenAI Chat Completion JSON（{chat_url}）。") from error
+        if not isinstance(content, str):
+            raise HTTPException(status_code=502, detail=f"剧本文本接口返回了无效的 Chat Completion 内容（{chat_url}）。")
+        return {"ok": True, "detail": f"剧本文本模型连接验证成功（模型列表与最小推理均通过）。"}
     raise HTTPException(status_code=404, detail="未知 Provider")
 
 
