@@ -1,50 +1,81 @@
-# NAI V5 storyboarding subskill
+# NAI V5 manga storyboard runtime context
 
-This is a compact runtime extraction of the local `nai5-prompting` skill. Apply it
-before producing storyboard JSON. It governs shot descriptions only; the caller
-owns NovelAI Character fields and final prompt assembly.
+Use this mandatory context before producing storyboard JSON. It is a focused,
+runtime adaptation of the `nai5-prompting` chapters on concept development,
+prompt field division, multi-character direction, comic paneling, and preflight
+checks. It governs storyboard text only; the caller owns NovelAI Character
+fields, parameter presets, and final prompt assembly.
 
-## Character contract
+## 1. Think as a four-stage visual pipeline
 
-- `Character 1`, `Character 2`, and so on are the only identity labels in panel
-  text. They map exactly to the separately supplied NovelAI Character fields.
-  Never invent, rename, merge, or replace a role, and do not put a role name in
-  panel text.
-- Hair, eyes, face, body, clothes, accessories, color schemes, and other visual
-  appearance belong exclusively to NovelAI Character fields. Never describe
-  those details in a panel.
-- For every interaction, make the direction unambiguous: name who initiates the
-  action, who receives it, and who owns any shared prop. Do not write ambiguous
-  phrases such as "their hands" or "both of them" when ownership matters.
+For every page, decide in this order: (1) the story beat and memorable visual
+event; (2) camera, framing, focal point, and foreground/middle/background
+space; (3) each participant's frozen action and interaction with the setting;
+then (4) visible light, palette, weather, and material. Do not use decorative
+particles or generic mood words to substitute for an event, a camera decision,
+or an action.
 
-## Panel contract
+Each panel is one readable frozen instant. Prefer an action with an observable
+reaction or environmental consequence over a static list of props. A character
+may be absent from a panel when the story calls for it; do not force every role
+into every panel.
 
-- One panel equals one frozen instant. Never combine shots using "then", "cut
-  to", "meanwhile", montage language, or a second beat.
-- Start from a concrete visual action. Use concise pose and camera phrases for
-  discrete facts (for example `upper body`, `from side`, `hands clasped`), then
-  use a short sentence only for spatial relation, action direction, or light.
-- Select one principal camera distance and one camera direction per panel. Do
-  not stack conflicting camera instructions.
-- State scene and lighting concretely. Avoid generic filler such as "beautiful",
-  "cinematic", "romantic atmosphere", or "detailed" unless tied to visible
-  light, weather, or environment.
-- No dialogue, speech bubbles, written signs, or quality-tag tails.
+## 2. Field division and identity contract
 
-## Manga-page contract
+- `Character 1`, `Character 2`, and so on are the only identity labels allowed
+  in panel text. They map exactly to the separately supplied NovelAI Character
+  fields. Never use a role name, franchise, alias, hair, face, body, clothing,
+  accessory, color scheme, or other appearance detail in a panel.
+- Character appearance and identity are supplied once in the independent
+  Character fields and reused across panels. When a numbered character appears
+  again, use the same number; never invent, rename, merge, or replace a role.
+- Make interaction ownership explicit: state who starts the action, who receives
+  it, and whose hand owns a shared prop. Avoid ambiguous wording such as
+  "their hand" or "both of them" when it matters.
+- Panel text can make an interaction readable, but it cannot reliably bind a
+  complex action to a numbered identity. Keep interactions to one clear pair at
+  a time, and do not invent field-only syntax such as `source#` or `target#` in
+  the main panel prompt.
 
-- Every panel must have a position anchor: Top-left, Top-right, Bottom-left,
-  Bottom-right, or Panel N.
-- Keep all panels on the same page in one continuous location/time progression.
-  Give each page a visual connective device such as a shared prop, direction of
-  movement, lighting progression, or a reaction that follows the previous panel.
-- Do not repeat character appearance across panels. The separate Character
-  fields provide cross-panel consistency.
+## 3. Prompt-writing rules for a single panel
 
-## Output contract
+- Use compact tag-like phrases for pose, shot size, and camera direction, such
+  as `upper body`, `from side`, `low angle`, or `hands clasped`. Use one short
+  sentence only where a relation, action direction, light path, or spatial fact
+  must be unambiguous.
+- Pick one principal shot distance and one camera direction. Do not stack
+  conflicting camera or framing instructions.
+- State a concrete setting and visible lighting source/effect. Avoid filler
+  including "beautiful", "cinematic", "romantic atmosphere", "detailed", or
+  quality tails.
+- Do not include dialogue, speech bubbles, written signs, negative prompts,
+  sampler settings, or quality tags. If the story genuinely requires text, say
+  which panel contains it and identify its physical carrier; otherwise omit it.
+- Never write a sequence in one panel: no `then`, `cut to`, `meanwhile`,
+  montage wording, or second beat.
 
-- Return only the requested JSON object.
-- `title` and `beat` are concise Chinese editorial notes.
-- Each `panels` entry is one English visual prompt under 75 words, with its
-  position anchor included. It must be usable as a single manga panel without
-  relying on any other panel's sentence.
+## 4. Comic layout and page continuity
+
+- First establish the requested panel count, arrangement, border treatment, and
+  position anchors. The layout declaration controls all later panel directions.
+- Write one independent panel entry per anchor. Each entry must start from its
+  own action, expression, camera, setting, and light; do not let one sentence
+  describe several panels.
+- Make the page cohere with one visual connective device: a recurring prop, a
+  movement direction, an eyeline/reaction chain, a lighting progression, or a
+  clear main-panel/inset relationship. Keep a page in one continuous local
+  time/place progression unless the requested layout explicitly says otherwise.
+- A multi-panel page is visually dense. Keep the style simple and legible, use
+  clean equal borders when requested, and make the intended focus explicit in
+  the relevant panel rather than adding competing details everywhere.
+- The final page continuity note must name the visible prop, direction, light,
+  reaction, or unresolved action that the next page can carry forward.
+
+## 5. Mandatory preflight check
+
+Before returning JSON, verify that: every panel has its requested position
+anchor; every panel has one frozen moment; all role references are numbered
+`Character N`; appearance is absent; each interaction has a clear initiator,
+receiver, and prop owner; the layout and exact page/panel counts match; and the
+page has a concrete connective device. Use only the output schema requested by
+the caller.

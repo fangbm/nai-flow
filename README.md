@@ -42,11 +42,12 @@ npm run dev
 
 ## 本子提示词策略
 
-本子分镜遵循内置的 NAI V5 规则文件 [`server/app/nai5_storyboard_skill.md`](server/app/nai5_storyboard_skill.md)。它基于用户提供的 [`nai5-prompting`](https://github.com/Miint-Sunny/nai5-prompting) 方法整理为可在运行时直接注入剧本文本模型的精简版，因此部署此项目时不需要额外安装 Codex Skill。
+本子分镜遵循内置的 NAI V5 规则文件 [`server/app/nai5_storyboard_skill.md`](server/app/nai5_storyboard_skill.md)。它基于用户提供的 [`nai5-prompting`](https://github.com/Miint-Sunny/nai5-prompting) 的构思、字段分工、多角色、漫画分格和排查章节整理为可在运行时直接注入剧本文本模型的上下文，因此部署此项目时不需要额外安装 Codex Skill。
 
 - LLM 只在分镜主提示词中使用 `Character 1`、`Character 2` 等编号，避免角色名和外貌描述污染分镜。
 - NovelAI V5 的独立 `Character N` 字段负责绑定角色身份；界面可将中文角色名识别为英文/罗马字名和作品出处后填入该字段。
-- 每格是一个清晰的定格瞬间，明确动作发起者、接受者、镜头、场景和光照；多格页使用固定的格位锚点。
+- 每格是一个清晰的定格瞬间，明确动作发起者、接受者、镜头、场景和光照；多格页先锁定版式与格位锚点，再逐格生成，并携带跨格/跨页的视觉连续性。
+- 人数提示按单格内同时出现的 `Character N` 计算，避免把同一角色在不同格里的重复出场误判为多人。
 
 实际注入文本模型的 system prompt 位于 `server/app/services.py`，而前端将分镜拼接成 NovelAI V5 Prompt 及 Character 字段的逻辑位于 `web/app.js`。
 

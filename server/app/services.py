@@ -123,7 +123,7 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
         '{"pages":[{"title":"Chinese title","beat":"Chinese page beat",'
         '"continuity":"Chinese visual carry-over note","panels":["English NovelAI V5 visual prompt", ...]}]}. '
         'Build continuous story pages. Each panel must be a concise visual direction. '
-        'Use Character 1, Character 2, and so on in every panel. These indexes match the separate NovelAI Character fields. '
+        'Use only Character 1, Character 2, and so on for identities in panel text. These indexes match the separate NovelAI Character fields. '
         'Never use a supplied role name in any panel. '
         'Character appearance is controlled separately by NovelAI Character fields: never describe hair, eyes, '
         'face, body, clothing, accessories, colors, or physical appearance. '
