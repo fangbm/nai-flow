@@ -48,6 +48,7 @@ npm run dev
 - NovelAI V5 的独立 `Character N` 字段负责绑定角色身份；界面可将中文角色名识别为英文/罗马字名和作品出处后填入该字段。
 - 每格是一个清晰的定格瞬间，明确动作发起者、接受者、镜头、场景和光照；多格页先锁定版式与格位锚点，再逐格生成，并携带跨格/跨页的视觉连续性。
 - 人数提示按单格内同时出现的 `Character N` 计算，避免把同一角色在不同格里的重复出场误判为多人。
+- 分格策略默认由 LLM 按每页剧情决定：可在“每页最大格数”内混用主格、横/竖条、反应格和 inset；LLM 返回的页面布局声明会直接写入 NovelAI Prompt。需要固定 4koma 时可切换为“均分网格”。
 
 实际注入文本模型的 system prompt 位于 `server/app/services.py`，而前端将分镜拼接成 NovelAI V5 Prompt 及 Character 字段的逻辑位于 `web/app.js`。
 

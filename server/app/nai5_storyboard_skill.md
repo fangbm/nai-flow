@@ -58,6 +58,10 @@ into every panel.
 
 - First establish the requested panel count, arrangement, border treatment, and
   position anchors. The layout declaration controls all later panel directions.
+- When the requested layout names a dominant hero panel with inset strips, do
+  not turn it into a grid: use the top narrow strip for a close-up/setup, let
+  the center hero panel carry the decisive action, and reserve the bottom narrow
+  strip for a reaction or aftermath.
 - Write one independent panel entry per anchor. Each entry must start from its
   own action, expression, camera, setting, and light; do not let one sentence
   describe several panels.

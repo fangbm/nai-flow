@@ -26,6 +26,7 @@ class ScriptRequest(BaseModel):
     visual_anchor: str = Field(default="", max_length=4000)
     continuity_anchor: str = Field(default="", max_length=4000)
     layout: str = Field(default="", max_length=1000)
+    adaptive_layout: bool = False
     pages: int = Field(default=4, ge=1, le=20)
     panels: int = Field(default=4, ge=1, le=9)
 
@@ -40,6 +41,7 @@ class StoryPage(BaseModel):
     panels: list[str] = Field(default_factory=list, max_length=9)
     pagePrompt: str = Field(default="", max_length=10000)
     continuity: str = Field(default="", max_length=2000)
+    layout: str = Field(default="", max_length=1000)
     image: str = Field(default="", max_length=2000)
 
 
@@ -67,6 +69,7 @@ class ProjectState(BaseModel):
     comicStyle: str = Field(default="", max_length=4000)
     continuityAnchor: str = Field(default="", max_length=4000)
     characterPlacement: Literal["ai", "left-right"] = "ai"
+    panelLayout: Literal["ai", "grid"] = "ai"
     pageCount: int = Field(default=4, ge=1, le=20)
     panelCount: int = Field(default=4, ge=1, le=9)
     pages: list[StoryPage] = Field(default_factory=list, max_length=20)
