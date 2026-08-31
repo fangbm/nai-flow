@@ -23,6 +23,9 @@ class ImageRequest(BaseModel):
 class ScriptRequest(BaseModel):
     synopsis: str = Field(min_length=1, max_length=10000)
     characters: str = Field(default="", max_length=4000)
+    visual_anchor: str = Field(default="", max_length=4000)
+    continuity_anchor: str = Field(default="", max_length=4000)
+    layout: str = Field(default="", max_length=1000)
     pages: int = Field(default=4, ge=1, le=20)
     panels: int = Field(default=4, ge=1, le=9)
 
@@ -36,6 +39,7 @@ class StoryPage(BaseModel):
     beat: str = Field(default="", max_length=4000)
     panels: list[str] = Field(default_factory=list, max_length=9)
     pagePrompt: str = Field(default="", max_length=10000)
+    continuity: str = Field(default="", max_length=2000)
     image: str = Field(default="", max_length=2000)
 
 
@@ -60,6 +64,9 @@ class ProjectState(BaseModel):
     variety: bool = False
     synopsis: str = Field(default="", max_length=10000)
     comicCharacters: str = Field(default="", max_length=4000)
+    comicStyle: str = Field(default="", max_length=4000)
+    continuityAnchor: str = Field(default="", max_length=4000)
+    characterPlacement: Literal["ai", "left-right"] = "ai"
     pageCount: int = Field(default=4, ge=1, le=20)
     panelCount: int = Field(default=4, ge=1, le=9)
     pages: list[StoryPage] = Field(default_factory=list, max_length=20)

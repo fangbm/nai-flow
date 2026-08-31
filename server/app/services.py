@@ -121,7 +121,7 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
     system = (
         'You are a manga storyboard editor. Return JSON only: '
         '{"pages":[{"title":"Chinese title","beat":"Chinese page beat",'
-        '"panels":["English NovelAI V5 visual prompt", ...]}]}. '
+        '"continuity":"Chinese visual carry-over note","panels":["English NovelAI V5 visual prompt", ...]}]}. '
         'Build continuous story pages. Each panel must be a concise visual direction. '
         'Use Character 1, Character 2, and so on in every panel. These indexes match the separate NovelAI Character fields. '
         'Never use a supplied role name in any panel. '
@@ -131,6 +131,7 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
         'State which Character N performs each action and who receives it; for shared objects, state whose hand holds it. '
         'Use concise English visual prompts containing pose tags, one camera tag, setting, lighting, and named-role relationships. '
         'Avoid dialogue text. '
+        'For each page, add a short Chinese continuity note naming the prop, direction, lighting, or reaction that carries into the next page. '
         'Exact requested page and panel count.\n\n'
         'The following is a mandatory local NAI V5 storyboarding skill. Follow it over generic writing habits:\n'
         f'{_nai5_storyboard_skill()}'
@@ -138,6 +139,9 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
     prompt = (
         f"Synopsis: {payload.synopsis}\n"
         f"Role names (identity only; do not repeat their appearance):\n{payload.characters}\n"
+        f"Visual anchor (fixed style, era, location, and lighting rules): {payload.visual_anchor or 'No extra anchor'}\n"
+        f"Continuity anchor (must recur across pages): {payload.continuity_anchor or 'Use a visible prop, direction, lighting, or reaction'}\n"
+        f"Page layout: {payload.layout or 'Use the requested panel count with clear position anchors'}\n"
         f"Pages: {payload.pages}\nPanels per page: {payload.panels}"
     )
     endpoint = _chat_completions_url(settings.llm_endpoint)
@@ -182,5 +186,5 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
                 status_code=502,
                 detail=f"剧本文本模型第 {index} 页返回了 {len(page.panels)} 格，但请求的是 {payload.panels} 格。请重新生成。原始返回：{content[:12000]}",
             )
-        pages.append({"title": page.title, "beat": page.beat, "panels": page.panels})
+        pages.append({"title": page.title, "beat": page.beat, "continuity": page.continuity, "panels": page.panels})
     return {"pages": pages}
