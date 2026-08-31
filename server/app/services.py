@@ -6,9 +6,10 @@ from pathlib import Path
 
 import httpx
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from .config import settings
-from .schemas import ImageRequest, ScriptRequest
+from .schemas import ImageRequest, ScriptRequest, StoryPage
 
 
 @lru_cache(maxsize=1)
@@ -127,7 +128,7 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
         'Character appearance is controlled separately by NovelAI Character fields: never describe hair, eyes, '
         'face, body, clothing, accessories, colors, or physical appearance. '
         'Each panel is exactly one frozen moment, never a sequence, montage, transition, or "then cut to". '
-        'State which named role performs each action and who receives it; for shared objects, state whose hand holds it. '
+        'State which Character N performs each action and who receives it; for shared objects, state whose hand holds it. '
         'Use concise English visual prompts containing pose tags, one camera tag, setting, lighting, and named-role relationships. '
         'Avoid dialogue text. '
         'Exact requested page and panel count.\n\n'
@@ -159,6 +160,27 @@ async def generate_storyboard(payload: ScriptRequest) -> dict | None:
     except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as error:
         raw = content if isinstance(content, str) and content else response.text
         raise HTTPException(status_code=502, detail=f"剧本文本模型没有返回有效的 JSON 分镜。原始返回：{raw[:12000]}") from error
-    if not isinstance(output.get("pages"), list):
+    raw_pages = output.get("pages")
+    if not isinstance(raw_pages, list):
         raise HTTPException(status_code=502, detail=f"剧本文本模型返回缺少 pages。原始返回：{content[:12000]}")
-    return output
+    if len(raw_pages) != payload.pages:
+        raise HTTPException(
+            status_code=502,
+            detail=f"剧本文本模型返回了 {len(raw_pages)} 页，但请求的是 {payload.pages} 页。请重新生成。原始返回：{content[:12000]}",
+        )
+    pages = []
+    for index, raw_page in enumerate(raw_pages, start=1):
+        try:
+            page = StoryPage.model_validate(raw_page)
+        except ValidationError as error:
+            raise HTTPException(
+                status_code=502,
+                detail=f"剧本文本模型返回的第 {index} 页格式无效：{error.errors(include_url=False)}。原始返回：{content[:12000]}",
+            ) from error
+        if len(page.panels) != payload.panels:
+            raise HTTPException(
+                status_code=502,
+                detail=f"剧本文本模型第 {index} 页返回了 {len(page.panels)} 格，但请求的是 {payload.panels} 格。请重新生成。原始返回：{content[:12000]}",
+            )
+        pages.append({"title": page.title, "beat": page.beat, "panels": page.panels})
+    return {"pages": pages}

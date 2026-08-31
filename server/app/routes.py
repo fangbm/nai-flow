@@ -57,13 +57,19 @@ async def write_settings(payload: SettingsUpdate):
 
 
 @router.post("/api/settings/test/{provider}")
-async def test_settings(provider: str):
+async def test_settings(provider: str, payload: SettingsUpdate | None = None):
     if provider == "nai":
-        if not settings.nai_token:
+        token_value = payload.nai.token.strip() if payload and payload.nai.token else settings.nai_token
+        endpoint_value = payload.nai.endpoint if payload and payload.nai.endpoint is not None else settings.nai_endpoint
+        if not token_value:
             raise HTTPException(status_code=409, detail="未配置 NovelAI Token")
-        parsed = urlsplit(settings.nai_endpoint)
+        try:
+            endpoint_value = settings.validate_endpoint(endpoint_value, "NovelAI 图片接口")
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        parsed = urlsplit(endpoint_value)
         account_url = f"{parsed.scheme}://{parsed.netloc}/user/information"
-        token = settings.nai_token.removeprefix("Bearer ").strip()
+        token = token_value.removeprefix("Bearer ").strip()
         try:
             async with httpx.AsyncClient(timeout=20) as client:
                 response = await client.get(
@@ -114,6 +120,17 @@ async def save_image_asset(request: Request):
     temporary.write_bytes(content)
     temporary.replace(target)
     return {"url": f"/api/assets/{filename}"}
+
+
+@router.delete("/api/assets/{filename}")
+async def delete_image_asset(filename: str):
+    if not filename or Path(filename).name != filename or Path(filename).suffix.lower() not in {".png", ".webp", ".jpg"}:
+        raise HTTPException(status_code=404, detail="素材不存在")
+    target = settings.assets_dir / filename
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="素材不存在")
+    target.unlink()
+    return {"ok": True}
 
 
 @router.get("/api/assets/{filename}")
