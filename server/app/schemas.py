@@ -52,7 +52,7 @@ class ProjectAsset(BaseModel):
 
 class ProjectState(BaseModel):
     projectName: str = Field(default="未命名项目", max_length=300)
-    view: Literal["studio", "comic", "assets"] = "studio"
+    view: Literal["projects", "studio", "comic", "assets"] = "studio"
     prompt: str = Field(default="", max_length=20000)
     negative: str = Field(default="", max_length=20000)
     characters: list[str] = Field(default_factory=list, max_length=10)
@@ -78,3 +78,12 @@ class ProjectState(BaseModel):
 
 class ProjectUpdate(BaseModel):
     state: ProjectState
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=300)
+    state: ProjectState | None = None
+
+
+class ProjectRename(BaseModel):
+    name: str = Field(min_length=1, max_length=300)

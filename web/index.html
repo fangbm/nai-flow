@@ -15,15 +15,16 @@
     <div class="app-shell">
       <aside class="sidebar">
         <a class="brand" href="#studio" aria-label="NAI Flow home"><span class="brand-mark">N</span><span>NAI <b>FLOW</b></span></a>
-        <div class="project-pill"><span class="pulse"></span><span id="projectNameSide">夏末的信</span><button class="icon-button" id="renameProject" title="重命名项目">···</button></div>
+        <button class="project-pill project-switcher" id="openProjectSwitcher" title="打开项目工作区"><span class="pulse"></span><span><small>当前项目</small><b id="projectNameSide">夏末的信</b></span><span class="project-switcher-arrow">⌘</span></button>
         <nav class="nav" aria-label="主导航">
+          <button class="nav-item" data-view="projects"><span>⌘</span>项目工作区</button>
           <button class="nav-item active" data-view="studio"><span>✦</span>基础出图</button>
           <button class="nav-item" data-view="comic"><span>▦</span>本子工作流</button>
           <button class="nav-item" data-view="assets"><span>◫</span>成品与素材 <em id="assetCount">0</em></button>
         </nav>
         <div class="sidebar-section">
-          <p>项目结构</p>
-          <div class="tree"><span>⌄</span><b>夏末的信</b><button id="addPage" title="新增页面">＋</button></div>
+          <p>当前项目</p>
+          <div class="tree"><span>⌄</span><b id="projectTreeName">夏末的信</b><button id="addPage" title="新增页面">＋</button></div>
           <div id="pageTree" class="page-tree"></div>
         </div>
         <div class="sidebar-bottom">
@@ -38,6 +39,16 @@
           <div><p class="eyebrow" id="viewKicker">IMAGE STUDIO</p><h1 id="viewTitle">基础图片生成</h1></div>
           <div class="top-actions"><span class="save-state" id="saveState">已保存在此设备</span><button class="button ghost" id="showHelp">使用说明</button><button class="avatar">F</button></div>
         </header>
+
+        <section class="view" id="projectsView">
+          <div class="workspace-hero">
+            <div><p class="eyebrow">NAI FLOW WORKSPACE</p><h2>项目工作区</h2><p>每个项目独立保存提示词、角色、分镜和素材。像 Codex 一样，先进入一个明确的工作上下文，再继续创作。</p></div>
+            <button id="createProject" class="button workspace-create">＋ 新建项目</button>
+          </div>
+          <div id="workspaceStats" class="workspace-stats"></div>
+          <div class="workspace-section-heading"><div><p class="eyebrow">PROJECTS</p><h3>全部项目</h3></div><span id="workspaceCount"></span></div>
+          <div id="projectsGrid" class="projects-grid"></div>
+        </section>
 
         <section class="view active" id="studioView">
           <div class="studio-layout">
@@ -96,6 +107,7 @@
 
     <dialog id="settingsDialog" class="modal"><form method="dialog"><div class="modal-heading"><div><p class="eyebrow">CONNECTIONS</p><h2>服务端连接设置</h2></div><button class="close-modal" value="cancel">×</button></div><div class="setting-tabs"><button type="button" class="settings-tab active" data-settings="nai">NovelAI</button><button type="button" class="settings-tab" data-settings="llm">剧本文本模型</button></div><div class="settings-content active" id="naiSettings"><label class="field-label">NovelAI API Token<input id="naiToken" type="password" placeholder="pst-…；已配置时留空不覆盖" autocomplete="off" /></label><label class="field-label">图片接口地址<input id="naiEndpoint" type="url" value="https://image.novelai.net/ai/generate-image" /></label><button id="testNaiConnection" class="button ghost" type="button">测试 NovelAI 连接（不扣额度）</button><p class="connection-hint">密钥仅由本机后端保存；页面不会再持有密钥或直连 NovelAI。</p></div><div class="settings-content" id="llmSettings"><label class="field-label">OpenAI 兼容 API Base URL<input id="llmEndpoint" type="url" placeholder="https://api.example.com/v1" /></label><label class="field-label">API Key<input id="llmToken" type="password" placeholder="已配置时留空不覆盖" autocomplete="off" /></label><label class="field-label">模型名<input id="llmModel" placeholder="gpt-4.1-mini" /></label><button id="testLlmConnection" class="button ghost" type="button">测试剧本文本模型（最小请求）</button><p class="connection-hint">测试会请求模型列表并执行一次极小的 Chat 请求，不会生成剧本。可填 Base URL 或完整的 <code>/chat/completions</code> 地址；后端会自动补齐路径并代理请求。若站点首页返回网页，请填写服务商提供的 API Base URL（通常以 <code>/v1</code> 结尾）。</p></div><p id="settingsFeedback" class="connection-hint" role="status" hidden></p><div class="modal-actions"><button class="button ghost" value="cancel">取消</button><button id="saveSettings" class="button" type="button">保存到后端</button></div></form></dialog>
     <dialog id="helpDialog" class="modal help-modal"><form method="dialog"><div class="modal-heading"><div><p class="eyebrow">HOW IT WORKS</p><h2>使用说明</h2></div><button class="close-modal" value="cancel">×</button></div><ol><li>先启动后端和前端，然后在“服务端连接设置”保存 NovelAI token；密钥不会返回给页面。</li><li>基础出图：主提示词写构图/动作/场景，角色栏固定角色外观；姿势和机位使用短 tag，叙事关系用句子。</li><li>本子工作流：输入梗概后获得可编辑分镜，按“生成本页”产出一张含多格版式的页面。</li><li>可选配置 OpenAI 兼容文本模型来生成剧本；没有它也可用本地分镜初稿。</li></ol><p class="connection-hint">V5 规则：不自动抄写质量预设；UC 留空即使用 NovelAI 默认预设，多人页面避免写 <code>extra characters</code>。</p></form></dialog>
+    <dialog id="projectDialog" class="modal project-modal"><form method="dialog"><div class="modal-heading"><div><p class="eyebrow">NEW PROJECT</p><h2>新建项目</h2></div><button class="close-modal" value="cancel">×</button></div><label class="field-label">项目名称<input id="newProjectName" maxlength="300" placeholder="例如：夏末的信 · 第一话" /></label><label class="field-label">开始方式<select id="newProjectTemplate"><option value="blank">空白项目</option><option value="image">基础出图项目</option><option value="comic">本子 / 分镜项目</option></select></label><p class="connection-hint">创建后会切换到新项目。已有项目、素材和分镜不会被覆盖。</p><div class="modal-actions"><button class="button ghost" value="cancel">取消</button><button id="confirmCreateProject" class="button" type="button">创建并打开</button></div></form></dialog>
     <div id="toast" class="toast" role="status"></div>
     <script type="module" src="./app.js"></script>
   </body>

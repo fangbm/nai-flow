@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 
 from .config import settings
-from .schemas import CharacterResolveRequest, ImageRequest, ProjectUpdate, ScriptRequest, SettingsUpdate
+from .schemas import CharacterResolveRequest, ImageRequest, ProjectCreate, ProjectRename, ProjectUpdate, ScriptRequest, SettingsUpdate
 from .services import generate_image, generate_storyboard, resolve_characters
 
 router = APIRouter()
@@ -53,6 +53,67 @@ async def read_project():
 async def write_project(payload: ProjectUpdate):
     settings.save_project(payload.state.model_dump())
     return {"ok": True}
+
+
+@router.get("/api/projects")
+async def list_projects():
+    return settings.workspace_summary()
+
+
+@router.get("/api/projects/{project_id}")
+async def read_workspace_project(project_id: str):
+    project = settings.get_workspace_project(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    return {"project": settings._project_summary(project), "state": project.get("state", {})}
+
+
+@router.post("/api/projects")
+async def create_workspace_project(payload: ProjectCreate):
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="项目名称不能为空")
+    state = payload.state.model_dump() if payload.state else {"projectName": name}
+    state["projectName"] = name
+    project = settings.create_workspace_project(name, state)
+    return {"project": settings._project_summary(project), "state": project["state"]}
+
+
+@router.put("/api/projects/{project_id}")
+async def write_workspace_project(project_id: str, payload: ProjectUpdate):
+    project = settings.save_workspace_project(project_id, payload.state.model_dump())
+    if project is None:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    return {"project": settings._project_summary(project)}
+
+
+@router.patch("/api/projects/{project_id}")
+async def rename_workspace_project(project_id: str, payload: ProjectRename):
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="项目名称不能为空")
+    project = settings.rename_workspace_project(project_id, name)
+    if project is None:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    return {"project": settings._project_summary(project)}
+
+
+@router.post("/api/projects/{project_id}/duplicate")
+async def duplicate_workspace_project(project_id: str, payload: ProjectRename):
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="项目名称不能为空")
+    project = settings.duplicate_workspace_project(project_id, name)
+    if project is None:
+        raise HTTPException(status_code=404, detail="项目不存在")
+    return {"project": settings._project_summary(project), "state": project["state"]}
+
+
+@router.delete("/api/projects/{project_id}")
+async def delete_workspace_project(project_id: str):
+    if not settings.delete_workspace_project(project_id):
+        raise HTTPException(status_code=409, detail="项目不存在，或这是工作区中唯一的项目")
+    return settings.workspace_summary()
 
 
 @router.post("/api/settings")
