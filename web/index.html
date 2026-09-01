@@ -15,18 +15,13 @@
     <div class="app-shell">
       <aside class="sidebar">
         <a class="brand" href="#studio" aria-label="NAI Flow home"><span class="brand-mark">N</span><span>NAI <b>FLOW</b></span></a>
-        <button class="project-pill project-switcher" id="openProjectSwitcher" title="打开项目工作区"><span class="pulse"></span><span><small>当前项目</small><b id="projectNameSide">夏末的信</b></span><span class="project-switcher-arrow">⌘</span></button>
+        <div class="projects-sidebar-header"><button id="openProjectSwitcher" class="sidebar-projects-title">项目 <span>⌄</span></button><div><button id="openWorkspace" class="icon-button" title="管理项目">···</button><button id="createProjectSide" class="icon-button" title="新建项目">＋</button></div></div>
+        <div id="sidebarProjects" class="sidebar-project-list"></div>
         <nav class="nav" aria-label="主导航">
-          <button class="nav-item" data-view="projects"><span>⌘</span>项目工作区</button>
           <button class="nav-item active" data-view="studio"><span>✦</span>基础出图</button>
           <button class="nav-item" data-view="comic"><span>▦</span>本子工作流</button>
           <button class="nav-item" data-view="assets"><span>◫</span>成品与素材 <em id="assetCount">0</em></button>
         </nav>
-        <div class="sidebar-section">
-          <p>当前项目</p>
-          <div class="tree"><span>⌄</span><b id="projectTreeName">夏末的信</b><button id="addPage" title="新增页面">＋</button></div>
-          <div id="pageTree" class="page-tree"></div>
-        </div>
         <div class="sidebar-bottom">
           <button class="subtle-button" id="exportProject">⇩ 导出项目</button>
           <label class="subtle-button import-label">⇧ 导入项目<input id="importProject" type="file" accept="application/json" /></label>
