@@ -58,6 +58,9 @@ into every panel.
 
 - First establish the requested panel count, arrangement, border treatment, and
   position anchors. The layout declaration controls all later panel directions.
+- The page layout must be a prompt-ready first sentence, not a meta explanation:
+  state the panel count, arrangement, relative sizes, and panel borders. For an
+  irregular page, directly name the main-panel/inset relationship.
 - When the requested layout names a dominant hero panel with inset strips, do
   not turn it into a grid: use the top narrow strip for a close-up/setup, let
   the center hero panel carry the decisive action, and reserve the bottom narrow
@@ -65,6 +68,8 @@ into every panel.
 - Write one independent panel entry per anchor. Each entry must start from its
   own action, expression, camera, setting, and light; do not let one sentence
   describe several panels.
+- Keep panel entries as separate numbered or bullet lines in the final prompt;
+  never collapse them into one prose paragraph.
 - Make the page cohere with one visual connective device: a recurring prop, a
   movement direction, an eyeline/reaction chain, a lighting progression, or a
   clear main-panel/inset relationship. Keep a page in one continuous local
